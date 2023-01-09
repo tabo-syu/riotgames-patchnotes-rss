@@ -9,17 +9,26 @@ import (
 
 func main() {
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		articles, err := riotgames.NewLOLWebsiteArticles(riotgames.JaJp)
+	r.GET("/league-of-legends/:locale", func(c *gin.Context) {
+		articles, err := riotgames.NewLOLWebsiteArticles(c.Param("locale"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"message": "error",
+				"message": err.Error(),
 			})
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"message": articles.LOLPatchNotes(),
-		})
+		c.JSON(http.StatusOK, articles.LOLPatchNotes())
+	})
+
+	r.GET("/valorant/:locale", func(c *gin.Context) {
+		articles, err := riotgames.NewValorantWebsiteArticles(c.Param("locale"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err.Error(),
+			})
+		}
+
+		c.JSON(http.StatusOK, articles.PatchNotes())
 	})
 
 	r.Run()
