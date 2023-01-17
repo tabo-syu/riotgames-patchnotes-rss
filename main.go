@@ -9,6 +9,9 @@ import (
 )
 
 func main() {
+	LOLCache := NewCache[riotgames.LOLArticle]()
+	ValorantCache := NewCache[riotgames.ValorantArticle]()
+
 	r := gin.Default()
 	r.GET("/league-of-legends/:locale", func(c *gin.Context) {
 		locale := c.Param("locale")
@@ -16,16 +19,24 @@ func main() {
 			c.JSON(http.StatusNotFound, gin.H{
 				"message": "invalid locale",
 			})
+
+			return
 		}
 
-		articles, err := riotgames.NewLOLWebsiteArticles(locale)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"message": err.Error(),
-			})
+		articles := LOLCache.Get(locale)
+		if articles == nil {
+			res, err := riotgames.NewLOLWebsiteArticles(locale)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"message": err.Error(),
+				})
+			}
+
+			articles = res.LOLPatchNotes()
+			LOLCache.Set(locale, articles)
 		}
 
-		c.JSON(http.StatusOK, articles.LOLPatchNotes())
+		c.JSON(http.StatusOK, articles)
 	})
 
 	r.GET("/valorant/:locale", func(c *gin.Context) {
@@ -34,16 +45,24 @@ func main() {
 			c.JSON(http.StatusNotFound, gin.H{
 				"message": "invalid locale",
 			})
+
+			return
 		}
 
-		articles, err := riotgames.NewValorantWebsiteArticles(locale)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"message": err.Error(),
-			})
+		articles := ValorantCache.Get(locale)
+		if articles == nil {
+			res, err := riotgames.NewValorantWebsiteArticles(locale)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"message": err.Error(),
+				})
+			}
+
+			articles = res.PatchNotes()
+			ValorantCache.Set(locale, articles)
 		}
 
-		c.JSON(http.StatusOK, articles.PatchNotes())
+		c.JSON(http.StatusOK, articles)
 	})
 
 	r.Run()
